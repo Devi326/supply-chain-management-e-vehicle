@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { Web3Provider } from './context/Web3Context';
 
 // Pages
 import Login from './pages/Login';
@@ -22,7 +23,7 @@ if (initialToken) api.defaults.headers.common['Authorization'] = `Bearer ${initi
 function PrivateRoute({ children, minLevel = 3 }) {
   const { user } = useAuth();
 
-  if (!user) {
+  if (!user || !localStorage.getItem('token')) {
     return <Navigate to="/" replace />;
   }
 
@@ -64,9 +65,11 @@ function AppContent() {
 export default function App() {
   return (
     <AuthProvider>
-      <Router>
-        <AppContent />
-      </Router>
+      <Web3Provider>
+        <Router>
+          <AppContent />
+        </Router>
+      </Web3Provider>
     </AuthProvider>
   );
 }

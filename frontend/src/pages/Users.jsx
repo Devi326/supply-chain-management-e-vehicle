@@ -10,9 +10,12 @@ export default function Users() {
     const [groups, setGroups] = useState([]);
     const [loading, setLoading] = useState(true);
     const [modal, setModal] = useState(null);
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [deleteId, setDeleteId] = useState(null);
     const [form, setForm] = useState({ name: '', username: '', password: '', user_level: '3', status: '1' });
     const [editId, setEditId] = useState(null);
     const [saving, setSaving] = useState(false);
+    const [errors, setErrors] = useState({});
 
     const load = async () => {
         setLoading(true);
@@ -21,37 +24,69 @@ export default function Users() {
     };
     useEffect(() => { load(); }, []);
 
-    const openAdd = () => { setForm({ name: '', username: '', password: '', user_level: '3', status: '1' }); setEditId(null); setModal('add'); };
-    const openEdit = (u) => { setForm({ name: u.name, username: u.username, password: '', user_level: String(u.user_level), status: String(u.status) }); setEditId(u.id); setModal('edit'); };
+    const userLevel = parseInt(me?.user_level || 3);
+    const isAdmin = userLevel === 1;
+
+    const openAdd = () => { setForm({ name: '', username: '', password: '', user_level: '3', status: '1' }); setEditId(null); setErrors({}); setModal('add'); };
+    const openEdit = (u) => { setForm({ name: u.name, username: u.username, password: '', user_level: String(u.user_level), status: String(u.status) }); setEditId(u.id); setErrors({}); setModal('edit'); };
 
     const handleSubmit = async (e) => {
-        e.preventDefault(); setSaving(true);
+        e.preventDefault(); setSaving(true); setErrors({});
         try {
             const payload = { ...form };
             if (modal === 'edit' && !payload.password) delete payload.password;
             modal === 'add' ? await api.post('/users', payload) : await api.put(`/users/${editId}`, payload);
             toast.success(modal === 'add' ? 'User added!' : 'User updated!');
             setModal(null); load();
-        } catch (err) { toast.error(err.response?.data?.message || 'Error'); } finally { setSaving(false); }
+        } catch (err) {
+            if (err.response?.data?.errors) {
+                const newErrors = {};
+                err.response.data.errors.forEach(e => {
+                    newErrors[e.field] = e.message;
+                });
+                setErrors(newErrors);
+            } else {
+                toast.error(err.response?.data?.message || 'Error');
+            }
+        } finally { setSaving(false); }
     };
 
-    const handleDelete = async (id) => {
-        if (!window.confirm('Delete this user?')) return;
-        try { await api.delete(`/users/${id}`); toast.success('Deleted'); load(); }
-        catch (err) { toast.error(err.response?.data?.message || 'Delete failed'); }
+    const handleDelete = (id) => {
+        setDeleteId(id);
+        setShowDeleteModal(true);
+    };
+
+    const confirmAndDelete = async () => {
+        if (!deleteId) return;
+        if (deleteId === me?.id) {
+            toast.error("You cannot delete your own account!");
+            setShowDeleteModal(false);
+            return;
+        }
+
+        try {
+            await api.delete(`/users/${deleteId}`);
+            toast.success('User deleted successfully');
+            load();
+        } catch (err) {
+            toast.error(err.response?.data?.message || 'Delete failed');
+        } finally {
+            setShowDeleteModal(false);
+            setDeleteId(null);
+        }
     };
 
     return (
         <Layout>
             <div className="page-header">
                 <div><h1 className="page-title">Users</h1><p className="page-sub">{users.length} accounts</p></div>
-                <button className="btn btn-primary" onClick={openAdd}>+ Add User</button>
+                {isAdmin && <button className="btn btn-primary" onClick={openAdd}>+ Add User</button>}
             </div>
 
             {loading ? <div className="spinner" /> : (
                 <div className="table-wrap">
                     <table>
-                        <thead><tr><th>#</th><th>Name</th><th>Username</th><th>Group</th><th>Status</th><th>Last Login</th><th>Actions</th></tr></thead>
+                        <thead><tr><th>#</th><th>Name</th><th>Username</th><th>Group</th><th>Status</th><th>Last Login</th>{isAdmin && <th>Actions</th>}</tr></thead>
                         <tbody>
                             {users.map((u, i) => (
                                 <tr key={u.id}>
@@ -61,12 +96,14 @@ export default function Users() {
                                     <td><span className="badge badge-primary">{u.group_name}</span></td>
                                     <td><span className={`badge ${u.status == 1 ? 'badge-success' : 'badge-danger'}`}>{u.status == 1 ? 'Active' : 'Inactive'}</span></td>
                                     <td style={{ color: 'var(--text-secondary)', fontSize: 12 }}>{u.last_login ? new Date(u.last_login).toLocaleString() : 'Never'}</td>
-                                    <td>
-                                        <div style={{ display: 'flex', gap: 6 }}>
-                                            <button className="btn btn-ghost btn-sm" onClick={() => openEdit(u)}>✏️ Edit</button>
-                                            {u.id !== me?.id && <button className="btn btn-danger btn-sm" onClick={() => handleDelete(u.id)}>🗑️</button>}
-                                        </div>
-                                    </td>
+                                    {isAdmin && (
+                                        <td>
+                                            <div style={{ display: 'flex', gap: 6 }}>
+                                                <button className="btn btn-ghost btn-sm" onClick={() => openEdit(u)}>✏️ Edit</button>
+                                                {u.id !== me?.id && <button className="btn btn-danger btn-sm" onClick={() => handleDelete(u.id)}>🗑️</button>}
+                                            </div>
+                                        </td>
+                                    )}
                                 </tr>
                             ))}
                         </tbody>
@@ -83,12 +120,18 @@ export default function Users() {
                         </div>
                         <form onSubmit={handleSubmit}>
                             <div className="form-group"><label className="form-label">Full Name *</label>
-                                <input className="form-control" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} required /></div>
+                                <input className={`form-control ${errors.name ? 'is-invalid' : ''}`} value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} required />
+                                {errors.name && <div className="invalid-feedback">{errors.name}</div>}
+                            </div>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                                 <div className="form-group"><label className="form-label">Username *</label>
-                                    <input className="form-control" value={form.username} onChange={e => setForm(f => ({ ...f, username: e.target.value }))} required /></div>
+                                    <input className={`form-control ${errors.username ? 'is-invalid' : ''}`} value={form.username} onChange={e => setForm(f => ({ ...f, username: e.target.value }))} required />
+                                    {errors.username && <div className="invalid-feedback">{errors.username}</div>}
+                                </div>
                                 <div className="form-group"><label className="form-label">Password {modal === 'edit' && '(leave blank to keep)'}</label>
-                                    <input type="password" className="form-control" value={form.password} onChange={e => setForm(f => ({ ...f, password: e.target.value }))} required={modal === 'add'} /></div>
+                                    <input type="password" className={`form-control ${errors.password ? 'is-invalid' : ''}`} value={form.password} onChange={e => setForm(f => ({ ...f, password: e.target.value }))} required={modal === 'add'} />
+                                    {errors.password && <div className="invalid-feedback">{errors.password}</div>}
+                                </div>
                                 <div className="form-group"><label className="form-label">Group</label>
                                     <select className="form-control" value={form.user_level} onChange={e => setForm(f => ({ ...f, user_level: e.target.value }))}>
                                         {groups.map(g => <option key={g.id} value={g.group_level}>{g.group_name}</option>)}
@@ -103,6 +146,24 @@ export default function Users() {
                                 <button type="submit" className="btn btn-primary" disabled={saving}>{saving ? 'Saving…' : 'Save'}</button>
                             </div>
                         </form>
+                    </div>
+                </div>
+            )}
+
+            {showDeleteModal && (
+                <div className="modal-backdrop" onClick={() => setShowDeleteModal(false)}>
+                    <div className="modal modal-sm" onClick={e => e.stopPropagation()}>
+                        <div className="modal-header">
+                            <h3 className="modal-title">Confirm Deletion</h3>
+                            <button className="modal-close" onClick={() => setShowDeleteModal(false)}>✕</button>
+                        </div>
+                        <div className="modal-body" style={{ padding: '20px 0' }}>
+                            <p>Are you sure you want to delete this user? This action cannot be undone.</p>
+                        </div>
+                        <div className="modal-footer">
+                            <button className="btn btn-ghost" onClick={() => setShowDeleteModal(false)}>Cancel</button>
+                            <button className="btn btn-danger" onClick={confirmAndDelete}>Delete User</button>
+                        </div>
                     </div>
                 </div>
             )}

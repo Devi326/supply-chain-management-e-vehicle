@@ -2,10 +2,19 @@ require('dotenv').config();
 const express = require('express');
 const connectDB = require('./src/config/db');
 
-// Connect to Database
 connectDB();
+
+const app = express();
 const cors = require('cors');
 const path = require('path');
+const fs = require('fs');
+
+// Ensure uploads directory exists
+const uploadDir = process.env.UPLOAD_DIR || 'uploads';
+if (!fs.existsSync(uploadDir)) {
+    fs.mkdirSync(uploadDir, { recursive: true });
+    console.log(`Created uploads directory: ${uploadDir}`);
+}
 
 const authRoutes = require('./src/routes/auth');
 const userRoutes = require('./src/routes/users');
@@ -16,7 +25,6 @@ const salesRoutes = require('./src/routes/sales');
 const mediaRoutes = require('./src/routes/media');
 const reportRoutes = require('./src/routes/reports');
 
-const app = express();
 const PORT = process.env.PORT || 5000;
 
 // Middleware
@@ -24,9 +32,11 @@ app.use(cors({
     origin: [
         'http://localhost:5173',
         'http://localhost:3000',
-        'https://supply-chain-management.onrender.com', // Example Render URL
-        /\.onrender\.com$/ // Allow all Render subdomains
-    ],
+        process.env.FRONTEND_URL, // Dynamic frontend url
+        /\.onrender\.com$/, // Allow all Render subdomains
+        /\.vercel\.app$/, // Allow Vercel environments
+        /\.netlify\.app$/ // Allow Netlify environments
+    ].filter(Boolean),
     credentials: true
 }));
 app.use(express.json());

@@ -3,6 +3,8 @@ const router = express.Router();
 const User = require('../models/User');
 const Group = require('../models/Group');
 const { protect, requireLevel } = require('../middleware/auth');
+const { body } = require('express-validator');
+const validate = require('../middleware/validate');
 const crypto = require('crypto');
 
 const sha1 = (str) => crypto.createHash('sha1').update(str).digest('hex');
@@ -28,7 +30,15 @@ router.get('/', protect, requireLevel(2), async (req, res) => {
 });
 
 // @route   POST /api/users
-router.post('/', protect, requireLevel(1), async (req, res) => {
+router.post('/', [
+    protect,
+    requireLevel(1),
+    body('name').notEmpty().withMessage('Name is required').trim(),
+    body('username').notEmpty().withMessage('Username is required').trim(),
+    body('password').isLength({ min: 5 }).withMessage('Password must be at least 5 characters'),
+    body('user_level').isInt({ min: 1, max: 3 }).withMessage('Invalid user level'),
+    validate
+], async (req, res) => {
     const { name, username, password, user_level, status } = req.body;
     try {
         const userExists = await User.findOne({ username });
@@ -50,7 +60,15 @@ router.post('/', protect, requireLevel(1), async (req, res) => {
 });
 
 // @route   PUT /api/users/:id
-router.put('/:id', protect, requireLevel(1), async (req, res) => {
+router.put('/:id', [
+    protect,
+    requireLevel(1),
+    body('name').optional().notEmpty().withMessage('Name cannot be empty').trim(),
+    body('username').optional().notEmpty().withMessage('Username cannot be empty').trim(),
+    body('password').optional().isLength({ min: 5 }).withMessage('Password must be at least 5 characters'),
+    body('user_level').optional().isInt({ min: 1, max: 3 }).withMessage('Invalid user level'),
+    validate
+], async (req, res) => {
     try {
         const user = await User.findById(req.params.id);
         if (!user) return res.status(404).json({ success: false, message: 'User not found' });

@@ -35,7 +35,7 @@ export default function Reports() {
                 month: item.date.split('-')[1],
                 total: parseFloat(item.total_selling_price)
             })));
-        } catch (err) {
+        } catch {
             toast.error('Failed to load reports');
         } finally {
             setLoading(false);
@@ -51,7 +51,7 @@ export default function Reports() {
         try {
             const r = await api.get(`/reports/range?start=${range.start}&end=${range.end}`);
             setRangeResults(r.data);
-        } catch (err) {
+        } catch {
             toast.error('Search failed');
         } finally {
             setRangeLoading(false);
@@ -70,43 +70,55 @@ export default function Reports() {
             <div className="grid-2">
                 <div className="card">
                     <h3 className="mb-4">Daily Sales (Current Month)</h3>
-                    <div style={{ height: 300 }}>
-                        <ResponsiveContainer width="100%" height="100%">
-                            <AreaChart data={dailyData}>
-                                <defs>
-                                    <linearGradient id="colorTotal" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="5%" stopColor="var(--accent)" stopOpacity={0.3} />
-                                        <stop offset="95%" stopColor="var(--accent)" stopOpacity={0} />
-                                    </linearGradient>
-                                </defs>
-                                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
-                                <XAxis dataKey="day" stroke="var(--text-muted)" fontSize={12} />
-                                <YAxis stroke="var(--text-muted)" fontSize={12} tickFormatter={v => `₹${v}`} />
-                                <Tooltip
-                                    contentStyle={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: '8px' }}
-                                    itemStyle={{ color: 'var(--accent-light)' }}
-                                />
-                                <Area type="monotone" dataKey="total" stroke="var(--accent)" fillOpacity={1} fill="url(#colorTotal)" />
-                            </AreaChart>
-                        </ResponsiveContainer>
+                    <div style={{ height: 300, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        {loading ? (
+                            <div className="spinner" />
+                        ) : dailyData.length === 0 ? (
+                            <div style={{ color: 'var(--text-muted)' }}>No sales data for this month</div>
+                        ) : (
+                            <ResponsiveContainer width="100%" height="100%">
+                                <AreaChart data={dailyData}>
+                                    <defs>
+                                        <linearGradient id="colorTotal" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="5%" stopColor="var(--accent)" stopOpacity={0.3} />
+                                            <stop offset="95%" stopColor="var(--accent)" stopOpacity={0} />
+                                        </linearGradient>
+                                    </defs>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+                                    <XAxis dataKey="day" stroke="var(--text-muted)" fontSize={12} />
+                                    <YAxis stroke="var(--text-muted)" fontSize={12} tickFormatter={v => `₹${v}`} />
+                                    <Tooltip
+                                        contentStyle={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: '8px' }}
+                                        itemStyle={{ color: 'var(--accent-light)' }}
+                                    />
+                                    <Area type="monotone" dataKey="total" stroke="var(--accent)" fillOpacity={1} fill="url(#colorTotal)" />
+                                </AreaChart>
+                            </ResponsiveContainer>
+                        )}
                     </div>
                 </div>
 
                 <div className="card">
                     <h3 className="mb-4">Monthly Sales Overview</h3>
-                    <div style={{ height: 300 }}>
-                        <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={monthlyData}>
-                                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
-                                <XAxis dataKey="month" stroke="var(--text-muted)" fontSize={12} />
-                                <YAxis stroke="var(--text-muted)" fontSize={12} tickFormatter={v => `₹${v}`} />
-                                <Tooltip
-                                    contentStyle={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: '8px' }}
-                                    cursor={{ fill: 'rgba(255,255,255,0.05)' }}
-                                />
-                                <Bar dataKey="total" fill="var(--accent)" radius={[4, 4, 0, 0]} />
-                            </BarChart>
-                        </ResponsiveContainer>
+                    <div style={{ height: 300, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        {loading ? (
+                            <div className="spinner" />
+                        ) : monthlyData.length === 0 ? (
+                            <div style={{ color: 'var(--text-muted)' }}>No sales recorded yet</div>
+                        ) : (
+                            <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={monthlyData}>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+                                    <XAxis dataKey="month" stroke="var(--text-muted)" fontSize={12} />
+                                    <YAxis stroke="var(--text-muted)" fontSize={12} tickFormatter={v => `₹${v}`} />
+                                    <Tooltip
+                                        contentStyle={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: '8px' }}
+                                        cursor={{ fill: 'rgba(255,255,255,0.05)' }}
+                                    />
+                                    <Bar dataKey="total" fill="var(--accent)" radius={[4, 4, 0, 0]} />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        )}
                     </div>
                 </div>
             </div>

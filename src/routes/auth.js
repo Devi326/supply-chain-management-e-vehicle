@@ -6,9 +6,16 @@ const User = require('../models/User');
 
 const sha1 = (str) => crypto.createHash('sha1').update(str).digest('hex');
 
+const { body } = require('express-validator');
+const validate = require('../middleware/validate');
+
 // @route   POST /api/auth/login
 // @desc    Authenticate user & get token
-router.post('/login', async (req, res) => {
+router.post('/login', [
+    body('username').notEmpty().withMessage('Username is required'),
+    body('password').notEmpty().withMessage('Password is required'),
+    validate
+], async (req, res) => {
     const { username, password } = req.body;
 
     try {
@@ -48,6 +55,35 @@ router.post('/login', async (req, res) => {
             }
         });
 
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
+});
+
+// @route   POST /api/auth/register
+// @desc    Public registration for customers
+router.post('/register', [
+    body('name').notEmpty().withMessage('Name is required').trim(),
+    body('username').notEmpty().withMessage('Username is required').trim(),
+    body('password').isLength({ min: 5 }).withMessage('Password must be at least 5 characters'),
+    validate
+], async (req, res) => {
+    const { name, username, password } = req.body;
+
+    try {
+        const userExists = await User.findOne({ username: new RegExp(`^${username}$`, 'i') });
+        if (userExists) return res.status(400).json({ success: false, message: 'Username already exists' });
+
+        const user = new User({
+            name,
+            username,
+            password: sha1(password),
+            user_level: 3, // Default to Customer
+            status: 1
+        });
+
+        await user.save();
+        res.status(201).json({ success: true, message: 'Registration successful! You can now log in.' });
     } catch (err) {
         res.status(500).json({ success: false, message: err.message });
     }

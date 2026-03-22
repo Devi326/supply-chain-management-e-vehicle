@@ -4,6 +4,8 @@ const multer = require('multer');
 const path = require('path');
 const Media = require('../models/Media');
 const { protect, requireLevel } = require('../middleware/auth');
+const { param } = require('express-validator');
+const validate = require('../middleware/validate');
 const fs = require('fs');
 
 const storage = multer.diskStorage({
@@ -47,7 +49,12 @@ router.post('/upload', protect, requireLevel(2), upload.single('file'), async (r
 });
 
 // @route   DELETE /api/media/:id
-router.delete('/:id', protect, requireLevel(2), async (req, res) => {
+router.delete('/:id', [
+    protect,
+    requireLevel(2),
+    param('id').isMongoId().withMessage('Invalid media ID'),
+    validate
+], async (req, res) => {
     try {
         const media = await Media.findById(req.params.id);
         if (!media) return res.status(404).json({ success: false, message: 'Media not found' });

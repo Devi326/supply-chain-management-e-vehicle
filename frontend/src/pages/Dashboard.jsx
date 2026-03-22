@@ -84,7 +84,7 @@ export default function Dashboard() {
                                 {recentSales.length === 0 ? (
                                     <tr><td colSpan={4} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: 24 }}>No sales yet</td></tr>
                                 ) : recentSales.map(s => (
-                                    <tr key={s.id}>
+                                    <tr key={s.id || s._id}>
                                         <td>{s.product_name}</td>
                                         <td>{s.qty}</td>
                                         <td>₹{parseFloat(s.price).toLocaleString('en-IN')}</td>
@@ -107,9 +107,9 @@ export default function Dashboard() {
                             <thead><tr><th>#</th><th>Product</th><th>Units Sold</th><th>Orders</th></tr></thead>
                             <tbody>
                                 {topProducts.length === 0 ? (
-                                    <tr><td colSpan={4} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: 24 }}>No data yet</td></tr>
+                                    <tr><td colSpan={4} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: 24 }}>No sales recorded yet</td></tr>
                                 ) : topProducts.map((p, i) => (
-                                    <tr key={i}>
+                                    <tr key={p.id || p._id || i}>
                                         <td><span className="badge badge-primary">{i + 1}</span></td>
                                         <td>{p.name}</td>
                                         <td>{p.totalQty}</td>

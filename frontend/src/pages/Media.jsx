@@ -2,17 +2,24 @@ import { useEffect, useState, useRef } from 'react';
 import api from '../api/client';
 import Layout from '../components/Layout';
 import toast from 'react-hot-toast';
+import { useAuth } from '../context/AuthContext';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL?.replace('/api', '') || 'http://localhost:5000';
 
 export default function Media() {
+    const { user: me } = useAuth();
     const [items, setItems] = useState([]);
     const [loading, setLoading] = useState(true);
     const [uploading, setUploading] = useState(false);
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [deleteId, setDeleteId] = useState(null);
     const fileRef = useRef();
 
     const load = async () => { setLoading(true); const r = await api.get('/media'); setItems(r.data.data); setLoading(false); };
     useEffect(() => { load(); }, []);
+
+    const userLevel = parseInt(me?.user_level || 3);
+    const isAdmin = userLevel === 1;
 
     const handleUpload = async (e) => {
         const file = e.target.files[0];
@@ -28,10 +35,23 @@ export default function Media() {
         finally { setUploading(false); fileRef.current.value = ''; }
     };
 
-    const handleDelete = async (id) => {
-        if (!window.confirm('Delete this media?')) return;
-        try { await api.delete(`/media/${id}`); toast.success('Deleted'); load(); }
-        catch (err) { toast.error(err.response?.data?.message || 'Delete failed'); }
+    const handleDelete = (id) => {
+        setDeleteId(id);
+        setShowDeleteModal(true);
+    };
+
+    const confirmAndDelete = async () => {
+        if (!deleteId) return;
+        try {
+            await api.delete(`/media/${deleteId}`);
+            toast.success('Media deleted successfully');
+            load();
+        } catch (err) {
+            toast.error(err.response?.data?.message || 'Delete failed');
+        } finally {
+            setShowDeleteModal(false);
+            setDeleteId(null);
+        }
     };
 
     return (
@@ -61,10 +81,27 @@ export default function Media() {
                             </div>
                             <div style={{ padding: '10px 12px', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                 <span style={{ fontSize: 11, color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 120 }}>{m.file_name}</span>
-                                <button className="btn btn-danger btn-sm" onClick={() => handleDelete(m.id)}>🗑️</button>
+                                {isAdmin && <button className="btn btn-danger btn-sm" onClick={() => handleDelete(m.id)}>🗑️</button>}
                             </div>
                         </div>
                     ))}
+                </div>
+            )}
+            {showDeleteModal && (
+                <div className="modal-backdrop" onClick={() => setShowDeleteModal(false)}>
+                    <div className="modal modal-sm" onClick={e => e.stopPropagation()}>
+                        <div className="modal-header">
+                            <h3 className="modal-title">Confirm Deletion</h3>
+                            <button className="modal-close" onClick={() => setShowDeleteModal(false)}>✕</button>
+                        </div>
+                        <div className="modal-body" style={{ padding: '20px 0' }}>
+                            <p>Are you sure you want to delete this media file? This action cannot be undone.</p>
+                        </div>
+                        <div className="modal-footer">
+                            <button className="btn btn-ghost" onClick={() => setShowDeleteModal(false)}>Cancel</button>
+                            <button className="btn btn-danger" onClick={confirmAndDelete}>Delete Media</button>
+                        </div>
+                    </div>
                 </div>
             )}
         </Layout>

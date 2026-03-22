@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState } from 'react';
 import api from '../api/client';
 import toast from 'react-hot-toast';
 
@@ -15,14 +15,13 @@ export function AuthProvider({ children }) {
         try {
             const { data } = await api.post('/auth/login', { username, password });
 
-            // Explicitly set headers for immediate next requests
-            api.defaults.headers.common['Authorization'] = `Bearer ${data.token}`;
-
             localStorage.setItem('token', data.token);
             localStorage.setItem('user', JSON.stringify(data.user));
-            setUser(data.user);
 
-            toast.success(`Welcome back, ${data.user.name}!`);
+            // Critical for immediate next requests during redirection
+            api.defaults.headers.common['Authorization'] = `Bearer ${data.token}`;
+
+            setUser(data.user);
             return data.user;
         } catch (err) {
             toast.error(err.response?.data?.message || 'Login failed');
@@ -46,4 +45,5 @@ export function AuthProvider({ children }) {
     );
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useAuth = () => useContext(AuthContext);
