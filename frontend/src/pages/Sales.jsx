@@ -170,13 +170,13 @@ export default function Sales() {
     const confirmAndDelete = async () => {
         const id = confirmDelete;
         setConfirmDelete(null);
-        try { 
-            await api.delete(`/sales/${id}`); 
-            toast.success('Sale record deleted'); 
-            load(); 
-        } catch (err) { 
+        try {
+            await api.delete(`/sales/${id}`);
+            toast.success('Sale record deleted');
+            load();
+        } catch (err) {
             console.error('Delete sale FAILED:', err);
-            toast.error(err.response?.data?.message || 'Delete failed'); 
+            toast.error(err.response?.data?.message || 'Delete failed');
         }
     };
 
