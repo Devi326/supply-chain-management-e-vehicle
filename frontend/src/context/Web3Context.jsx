@@ -137,7 +137,25 @@ export function Web3Provider({ children }) {
                 params: [{ chainId: SEPOLIA_NETWORK_ID }],
             });
         } catch (err) {
-            toast.error('Failed to switch to Sepolia: ' + err.message);
+            // If network not found, suggest adding it with a reliable RPC
+            if (err.code === 4902 || err.message.includes('Unrecognized chain')) {
+                try {
+                    await window.ethereum.request({
+                        method: 'wallet_addEthereumChain',
+                        params: [{
+                            chainId: SEPOLIA_NETWORK_ID,
+                            chainName: SEPOLIA_NETWORK_NAME,
+                            nativeCurrency: { name: 'Sepolia Ether', symbol: 'ETH', decimals: 18 },
+                            rpcUrls: ['https://ethereum-sepolia-rpc.publicnode.com', 'https://rpc.sepolia.org'],
+                            blockExplorerUrls: ['https://sepolia.etherscan.io']
+                        }]
+                    });
+                } catch (addErr) {
+                    toast.error('Failed to add Sepolia network: ' + addErr.message);
+                }
+            } else {
+                toast.error('Failed to switch to Sepolia: ' + err.message);
+            }
         }
     }, []);
 
