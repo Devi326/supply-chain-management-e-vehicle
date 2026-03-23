@@ -130,6 +130,25 @@ export function Web3Provider({ children }) {
         }
     };
 
+    const updateRpc = useCallback(async () => {
+        try {
+            toast.loading('Requesting MetaMask to use a faster RPC...', { id: 'rpc-update' });
+            await window.ethereum.request({
+                method: 'wallet_addEthereumChain',
+                params: [{
+                    chainId: SEPOLIA_NETWORK_ID,
+                    chainName: SEPOLIA_NETWORK_NAME,
+                    nativeCurrency: { name: 'Sepolia Ether', symbol: 'ETH', decimals: 18 },
+                    rpcUrls: ['https://ethereum-sepolia-rpc.publicnode.com', 'https://1rpc.io/sepolia', 'https://rpc.sepolia.org'],
+                    blockExplorerUrls: ['https://sepolia.etherscan.io']
+                }]
+            });
+            toast.success('RPC Updated! Try your transaction again.', { id: 'rpc-update' });
+        } catch (err) {
+            toast.error('Failed to update RPC: ' + err.message, { id: 'rpc-update' });
+        }
+    }, []);
+
     const switchToSepolia = useCallback(async () => {
         try {
             await window.ethereum.request({
@@ -139,25 +158,12 @@ export function Web3Provider({ children }) {
         } catch (err) {
             // If network not found, suggest adding it with a reliable RPC
             if (err.code === 4902 || err.message.includes('Unrecognized chain')) {
-                try {
-                    await window.ethereum.request({
-                        method: 'wallet_addEthereumChain',
-                        params: [{
-                            chainId: SEPOLIA_NETWORK_ID,
-                            chainName: SEPOLIA_NETWORK_NAME,
-                            nativeCurrency: { name: 'Sepolia Ether', symbol: 'ETH', decimals: 18 },
-                            rpcUrls: ['https://ethereum-sepolia-rpc.publicnode.com', 'https://rpc.sepolia.org'],
-                            blockExplorerUrls: ['https://sepolia.etherscan.io']
-                        }]
-                    });
-                } catch (addErr) {
-                    toast.error('Failed to add Sepolia network: ' + addErr.message);
-                }
+                updateRpc();
             } else {
                 toast.error('Failed to switch to Sepolia: ' + err.message);
             }
         }
-    }, []);
+    }, [updateRpc]);
 
     const value = {
         account: networkType === 'ethereum' ? account : solanaAddress,
@@ -171,6 +177,7 @@ export function Web3Provider({ children }) {
         solanaAddress,
         solanaRpc: SOLANA_RPC,
         switchToSepolia,
+        updateRpc,
     };
 
     return (

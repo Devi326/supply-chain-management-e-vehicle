@@ -24,7 +24,7 @@ const STAT_CONFIG = [
 export default function Dashboard() {
     const { user } = useAuth();
     const navigate = useNavigate();
-    const { isConnected, networkType } = useWeb3();
+    const { isConnected, networkType, updateRpc } = useWeb3();
 
     const [stats, setStats] = useState(null);
     const [recentSales, setRecent] = useState([]);
@@ -102,7 +102,15 @@ export default function Dashboard() {
                 return tx.hash;
             } catch (err) {
                 console.error(err);
-                toast.error('Ethereum record failed: ' + (err.reason || err.message), { id: 'chain-tx' });
+                if (err.code === -32002 || err.message?.includes('RPC endpoint returned too many errors')) {
+                    toast.error((t) => (
+                        <span>
+                            Blockchain busy. <button onClick={() => { updateRpc(); toast.dismiss(t.id); }} style={{ background: 'var(--accent)', color: 'white', border: 'none', padding: '2px 8px', borderRadius: 4, cursor: 'pointer', marginLeft: 8 }}>Fix Now ⚡</button>
+                        </span>
+                    ), { id: 'chain-tx', duration: 10000 });
+                } else {
+                    toast.error('Ethereum record failed: ' + (err.reason || err.message), { id: 'chain-tx' });
+                }
                 return null;
             }
         }
