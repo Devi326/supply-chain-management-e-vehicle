@@ -138,7 +138,7 @@ export function Web3Provider({ children }) {
                 params: [{
                     chainId: SEPOLIA_NETWORK_ID,
                     chainName: SEPOLIA_NETWORK_NAME,
-                    nativeCurrency: { name: 'Sepolia Ether', symbol: 'ETH', decimals: 18 },
+                    nativeCurrency: { name: 'Sepolia Ether', symbol: 'SepoliaETH', decimals: 18 },
                     rpcUrls: ['https://ethereum-sepolia-rpc.publicnode.com', 'https://1rpc.io/sepolia', 'https://rpc.sepolia.org'],
                     blockExplorerUrls: ['https://sepolia.etherscan.io']
                 }]
